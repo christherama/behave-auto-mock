@@ -17,13 +17,13 @@ SEE ALSO:
 import sys
 import os.path
 
+from setuptools import find_packages, setup
+from setuptools_behave import behave_test
+
 HERE0 = os.path.dirname(__file__) or os.curdir
 os.chdir(HERE0)
 HERE = os.curdir
 sys.path.insert(0, HERE)
-
-from setuptools import find_packages, setup
-from setuptools_behave import behave_test
 
 
 # -----------------------------------------------------------------------------
@@ -44,8 +44,8 @@ def find_packages_by_root_package(where):
     collect only what is needed.
     """
     root_package = os.path.basename(where)
-    packages = [ "%s.%s" % (root_package, sub_package)
-                 for sub_package in find_packages(where)]
+    packages = ["%s.%s" % (root_package, sub_package)
+                for sub_package in find_packages(where)]
     packages.insert(0, root_package)
     return packages
 
@@ -54,16 +54,16 @@ def find_packages_by_root_package(where):
 # SETUP:
 # -----------------------------------------------------------------------------
 setup(
-    name="behave",
-    version="1.2.7.dev1",
-    description="behave is behaviour-driven development, Python style",
+    name="behave-auto-mock",
+    version="0.0.1",
+    description="BDD with behave and mocks",
     long_description=description,
-    author="Jens Engel, Benno Rice and Richard Jones",
-    author_email="behave-users@googlegroups.com",
-    url="http://github.com/behave/behave",
-    provides = ["behave", "setuptools_behave"],
-    packages = find_packages_by_root_package(BEHAVE),
-    py_modules = ["setuptools_behave"],
+    author="Chris Ramacciotti",
+    author_email="chris.j.rama@gmail.com",
+    url="http://github.com/christherama/behave",
+    provides=["behave", "setuptools_behave"],
+    packages=find_packages_by_root_package(BEHAVE),
+    py_modules=["setuptools_behave"],
     entry_points={
         "console_scripts": [
             "behave = behave.__main__:main"
@@ -85,6 +85,7 @@ setup(
         # -- PREPARED:
         "win_unicode_console; python_version < '3.6'",
         "colorama",
+        "mock >= 2.0",
     ],
     test_suite="nose.collector",
     tests_require=[
@@ -95,7 +96,7 @@ setup(
         "PyHamcrest >= 1.8",
         "path.py >= 11.5.0"
     ],
-    cmdclass = {
+    cmdclass={
         "behave_test": behave_test,
     },
     extras_require={
@@ -118,28 +119,13 @@ setup(
         ],
     },
     # MAYBE-DISABLE: use_2to3
-    use_2to3= bool(python_version >= 3.0),
+    use_2to3=bool(python_version >= 3.0),
     license="BSD",
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Environment :: Console",
-        "Intended Audience :: Developers",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: Jython",
-        "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Software Development :: Testing",
         "License :: OSI Approved :: BSD License",
     ],
-    zip_safe = True,
+    zip_safe=True,
 )
-
-

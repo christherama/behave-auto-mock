@@ -17,6 +17,8 @@ import logging
 import itertools
 import time
 import six
+from contextlib2 import ExitStack
+from mock import Mock, patch
 from six.moves import zip       # pylint: disable=redefined-builtin
 from behave.model_core import \
         Status, BasicStatement, TagAndStatusStatement, TagStatement, Replayable
@@ -1412,6 +1414,7 @@ class ScenarioOutline(Scenario):
         runner.context._set_root_attribute("active_outline", None)
         return failed_count > 0
 
+
 class Examples(TagStatement, Replayable):
     """A table parsed from a `scenario outline`_ in a *feature file*.
 
@@ -1612,35 +1615,13 @@ class Step(BasicStatement, Replayable):
 
         start = time.time()
         if not skip_step_untested:
-            try:
-                # -- ENSURE:
-                #  * runner.context.text/.table attributes are reset (#66).
-                #  * Even EMPTY multiline text is available in context.
-                runner.context.text = self.text
-                runner.context.table = self.table
-                match.run(runner.context)
-                if self.status == Status.untested:
-                    # -- NOTE: Executed step may have skipped scenario and itself.
-                    # pylint: disable=redefined-variable-type
-                    self.status = Status.passed
-            except KeyboardInterrupt as e:
-                runner.aborted = True
-                error = u"ABORTED: By user (KeyboardInterrupt)."
-                self.status = Status.failed
-                self.store_exception_context(e)
-            except AssertionError as e:
-                self.status = Status.failed
-                self.store_exception_context(e)
-                if e.args:
-                    message = _text(e)
-                    error = u"Assertion Failed: "+ message
-                else:
-                    # no assertion text; format the exception
-                    error = _text(traceback.format_exc())
-            except Exception as e:      # pylint: disable=broad-except
-                self.status = Status.failed
-                error = _text(traceback.format_exc())
-                self.store_exception_context(e)
+            if self.step_type.lower() == "when" and hasattr(runner.context, "mocks") and runner.context.mocks:
+                with ExitStack() as stack:
+                    for mock in runner.context.mocks:
+                        stack.enter_context(patch(target=mock.target, new=mock.get_mock_object()))
+                    error = self._run_step(error, match, runner)
+            else:
+                error = self._run_step(error, match, runner)
 
         self.duration = time.time() - start
         runner.run_hook("after_step", runner.context, self)
@@ -1671,6 +1652,38 @@ class Step(BasicStatement, Replayable):
                 formatter.result(self)
 
         return keep_going
+
+    def _run_step(self, error, match, runner):
+        try:
+            # -- ENSURE:
+            #  * runner.context.text/.table attributes are reset (#66).
+            #  * Even EMPTY multiline text is available in context.
+            runner.context.text = self.text
+            runner.context.table = self.table
+            match.run(runner.context)
+            if self.status == Status.untested:
+                # -- NOTE: Executed step may have skipped scenario and itself.
+                # pylint: disable=redefined-variable-type
+                self.status = Status.passed
+        except KeyboardInterrupt as e:
+            runner.aborted = True
+            error = u"ABORTED: By user (KeyboardInterrupt)."
+            self.status = Status.failed
+            self.store_exception_context(e)
+        except AssertionError as e:
+            self.status = Status.failed
+            self.store_exception_context(e)
+            if e.args:
+                message = _text(e)
+                error = u"Assertion Failed: " + message
+            else:
+                # no assertion text; format the exception
+                error = _text(traceback.format_exc())
+        except Exception as e:  # pylint: disable=broad-except
+            self.status = Status.failed
+            error = _text(traceback.format_exc())
+            self.store_exception_context(e)
+        return error
 
 
 class Table(Replayable):
@@ -2031,6 +2044,29 @@ class Text(six.text_type):
         # strip unnecessary diff prefix
         diff = ["Text does not match:"] + diff[3:]
         raise AssertionError("\n".join(diff))
+
+
+class AutoMock(object):
+    def __init__(self, spec, target, *args, **kwargs):
+        self.spec = spec
+        self.target = target
+        self.return_values = self._create_return_value_dictionary(kwargs)
+
+    def _create_return_value_dictionary(self, kwargs):
+        # Get args ending in __return_value
+        return_values_to_mock = dict(filter(lambda k: k[0][-14:] == "__return_value", kwargs.iteritems()))
+
+        # Create dictionary of method_name: return_value
+        return dict(map(lambda k: (k[0][:-14], k[1]), return_values_to_mock.iteritems()))
+
+    def get_mock_object(self):
+        mock = Mock(spec=self.spec)
+        self._mock_return_values(mock)
+        return mock
+
+    def _mock_return_values(self, mock):
+        for name, rval in self.return_values.iteritems():
+            getattr(mock, name).return_value = rval
 
 
 # -----------------------------------------------------------------------------

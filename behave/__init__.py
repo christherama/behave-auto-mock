@@ -29,4 +29,5 @@ __all__ = [
     # -- DEPRECATING:
     "step_matcher"
 ]
-__version__ = "1.2.7.dev1"
+__version__ = "0.1.1"
+name = "auto_mock"
