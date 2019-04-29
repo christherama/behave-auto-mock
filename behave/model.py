@@ -1617,8 +1617,8 @@ class Step(BasicStatement, Replayable):
         if not skip_step_untested:
             if self.step_type.lower() == "when" and hasattr(runner.context, "mocks") and runner.context.mocks:
                 with ExitStack() as stack:
-                    for mock in runner.context.mocks:
-                        stack.enter_context(patch(target=mock.target, new=mock.get_mock_object()))
+                    for _, mock in runner.context.mocks.iteritems():
+                        stack.enter_context(patch(target=mock.target, new=mock))
                     error = self._run_step(error, match, runner)
             else:
                 error = self._run_step(error, match, runner)
@@ -2046,27 +2046,43 @@ class Text(six.text_type):
         raise AssertionError("\n".join(diff))
 
 
-class AutoMock(object):
+class AutoMock(Mock):
     def __init__(self, spec, target, *args, **kwargs):
-        self.spec = spec
+        super(AutoMock, self).__init__(spec=spec)
         self.target = target
-        self.return_values = self._create_return_value_dictionary(kwargs)
+        self.spec = spec
 
-    def _create_return_value_dictionary(self, kwargs):
+        self._mock_return_values(kwargs)
+        self._mock_side_effects(kwargs)
+
+    def _mock_return_values(self, kwargs):
         # Get args ending in __return_value
         return_values_to_mock = dict(filter(lambda k: k[0][-14:] == "__return_value", kwargs.iteritems()))
 
         # Create dictionary of method_name: return_value
-        return dict(map(lambda k: (k[0][:-14], k[1]), return_values_to_mock.iteritems()))
+        return_value_dict = dict(map(lambda k: (k[0][:-14], k[1]), return_values_to_mock.iteritems()))
 
-    def get_mock_object(self):
-        mock = Mock(spec=self.spec)
-        self._mock_return_values(mock)
-        return mock
+        for name, rval in return_value_dict.iteritems():
+            getattr(self, name).return_value = rval
 
-    def _mock_return_values(self, mock):
-        for name, rval in self.return_values.iteritems():
-            getattr(mock, name).return_value = rval
+    def _mock_side_effects(self, kwargs):
+        # Get args ending in __side_effect
+        side_effects_to_mock = dict(filter(lambda k: k[0][-13:] == "__side_effect", kwargs.iteritems()))
+
+        # Create dictionary of method_name: side_effect
+        side_effect_dict = dict(map(lambda k: (k[0][:-13], k[1]), side_effects_to_mock.iteritems()))
+
+        for name, side_effect in side_effect_dict.iteritems():
+            getattr(self, name).side_effect = side_effect
+
+    def _get_child_mock(self, **kw):
+        return Mock()
+
+    def __getattr__(self, item):
+        if item in ['target', 'spec']:
+            return self.__dict__[item]
+
+        return super(AutoMock, self).__getattr__(item)
 
 
 # -----------------------------------------------------------------------------

@@ -175,6 +175,17 @@ class Context(object):
         self.stderr_capture = None
         self.log_capture = None
         self.fail_on_cleanup_errors = self.FAIL_ON_CLEANUP_ERRORS
+        self._mocks = None
+
+    def _mock(self, auto_mocks):
+        if self._mocks is None:
+            self._mocks = dict()
+
+        if type(auto_mocks) != list:
+            auto_mocks = [auto_mocks]
+
+        for auto_mock in auto_mocks:
+            self._mocks[auto_mock.spec] = auto_mock
 
     @staticmethod
     def ignore_cleanup_error(context, cleanup_func, exception):
@@ -230,7 +241,6 @@ class Context(object):
             first_cleanup_erro_info = cleanup_errors[0]
             del cleanup_errors  # -- ENSURE: Release other exception frames.
             six.reraise(*first_cleanup_erro_info)
-
 
     def _push(self, layer_name=None):
         """Push a new layer on the context stack.
@@ -316,6 +326,8 @@ class Context(object):
                 return self.__dict__[attr]
             except KeyError:
                 raise AttributeError(attr)
+        elif attr == "mocks":
+            return self._mocks
 
         for frame in self._stack:
             if attr in frame:
@@ -327,6 +339,9 @@ class Context(object):
     def __setattr__(self, attr, value):
         if attr[0] == "_":
             self.__dict__[attr] = value
+            return
+        elif attr == "mocks":
+            self._mock(value)
             return
 
         for frame in self._stack[1:]:
