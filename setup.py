@@ -55,7 +55,7 @@ def find_packages_by_root_package(where):
 # -----------------------------------------------------------------------------
 setup(
     name="behave-auto-mock",
-    version="0.0.2",
+    version="0.0.3",
     description="BDD with behave and mocks",
     long_description=description,
     author="Chris Ramacciotti",

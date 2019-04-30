@@ -2062,6 +2062,10 @@ class AutoMock(Mock):
         # Create dictionary of method_name: return_value
         return_value_dict = dict(map(lambda k: (k[0][:-14], k[1]), return_values_to_mock.iteritems()))
 
+        # Include items in return_values param
+        if "return_values" in kwargs.keys():
+            return_value_dict = {**return_value_dict, **kwargs.get("return_values")}
+
         for name, rval in return_value_dict.iteritems():
             getattr(self, name).return_value = rval
 
