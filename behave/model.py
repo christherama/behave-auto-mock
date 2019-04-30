@@ -2052,32 +2052,46 @@ class AutoMock(Mock):
         self.target = target
         self.spec = spec
 
-        self._mock_return_values(kwargs)
         self._mock_side_effects(kwargs)
+        self._mock_return_values(kwargs)
 
     def _mock_return_values(self, kwargs):
         # Get args ending in __return_value
-        return_values_to_mock = dict(filter(lambda k: k[0][-14:] == "__return_value", kwargs.iteritems()))
+        return_values_to_mock = dict([k for k in iter(kwargs.items()) if k[0][-14:] == "__return_value"])
 
         # Create dictionary of method_name: return_value
-        return_value_dict = dict(map(lambda k: (k[0][:-14], k[1]), return_values_to_mock.iteritems()))
+        return_value_dict = dict([(k[0][:-14], k[1]) for k in iter(return_values_to_mock.items())])
 
         # Include items in return_values param
-        if "return_values" in kwargs.keys():
+        if "return_values" in list(kwargs.keys()):
             return_value_dict = {**return_value_dict, **kwargs.get("return_values")}
 
-        for name, rval in return_value_dict.iteritems():
-            getattr(self, name).return_value = rval
+        for name, rval in return_value_dict.items():
+            path = name.split('.')
+            first = path[0]
+            remaining = path[1:]
+            dot = "." if remaining else ""
+            statement = "getattr(self, first)." + ".return_value.".join(remaining) + dot + "return_value = rval"
+            exec(statement)
 
     def _mock_side_effects(self, kwargs):
         # Get args ending in __side_effect
-        side_effects_to_mock = dict(filter(lambda k: k[0][-13:] == "__side_effect", kwargs.iteritems()))
+        side_effects_to_mock = dict([k for k in iter(kwargs.items()) if k[0][-13:] == "__side_effect"])
 
         # Create dictionary of method_name: side_effect
-        side_effect_dict = dict(map(lambda k: (k[0][:-13], k[1]), side_effects_to_mock.iteritems()))
+        side_effect_dict = dict([(k[0][:-13], k[1]) for k in iter(side_effects_to_mock.items())])
 
-        for name, side_effect in side_effect_dict.iteritems():
-            getattr(self, name).side_effect = side_effect
+        # Include items in return_values param
+        if "side_effects" in list(kwargs.keys()):
+            side_effect_dict = {**side_effect_dict, **kwargs.get("side_effects")}
+
+        for name, exc in side_effect_dict.items():
+            path = name.split('.')
+            first = path[0]
+            remaining = path[1:]
+            dot = "." if remaining else ""
+            statement = "getattr(self, first)." + ".return_value.".join(remaining) + dot + "side_effect = exc"
+            exec(statement)
 
     def _get_child_mock(self, **kw):
         return Mock()
