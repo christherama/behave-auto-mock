@@ -31,7 +31,7 @@ sys.path.insert(0, HERE)
 # -----------------------------------------------------------------------------
 python_version = float("%s.%s" % sys.version_info[:2])
 BEHAVE = os.path.join(HERE, "behave")
-README = os.path.join(HERE, "README.rst")
+README = os.path.join(HERE, "README.md")
 description = "".join(open(README).readlines()[4:])
 
 
@@ -55,7 +55,7 @@ def find_packages_by_root_package(where):
 # -----------------------------------------------------------------------------
 setup(
     name="behave-auto-mock",
-    version="0.0.4",
+    version="0.0.5",
     description="BDD with behave and mocks",
     long_description=description,
     author="Chris Ramacciotti",
