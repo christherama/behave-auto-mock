@@ -2095,7 +2095,7 @@ class AutoMock(Mock):
 
             # Use PropertyMock when exception is inner class of spec
             exc_class_simple_name = exc.__class__.__qualname__.split(".")[-1:][0]
-            inner_exc_class = getattr(self.spec, exc_class_simple_name)
+            inner_exc_class = getattr(self.spec, exc_class_simple_name, False)
             if inner_exc_class and isinstance(exc, inner_exc_class):
                 setattr(type(self), exc_class_simple_name, PropertyMock(return_value=exc.__class__))
 
