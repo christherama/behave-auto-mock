@@ -60,7 +60,7 @@ setup(
     long_description=description,
     author="Chris Ramacciotti",
     author_email="chris.j.rama@gmail.com",
-    url="http://github.com/christherama/behave",
+    url="http://github.com/christherama/behave-auto-mock",
     provides=["behave", "setuptools_behave"],
     packages=find_packages_by_root_package(BEHAVE),
     py_modules=["setuptools_behave"],

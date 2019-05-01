@@ -18,7 +18,7 @@ import itertools
 import time
 import six
 from contextlib2 import ExitStack
-from mock import Mock, patch
+from mock import Mock, patch, PropertyMock
 from six.moves import zip       # pylint: disable=redefined-builtin
 from behave.model_core import \
         Status, BasicStatement, TagAndStatusStatement, TagStatement, Replayable
@@ -2092,6 +2092,12 @@ class AutoMock(Mock):
             dot = "." if remaining else ""
             statement = "getattr(self, first)." + ".return_value.".join(remaining) + dot + "side_effect = exc"
             exec(statement)
+
+            # Use PropertyMock when exception is inner class of spec
+            exc_class_simple_name = exc.__class__.__qualname__.split(".")[-1:][0]
+            inner_exc_class = getattr(self.spec, exc_class_simple_name)
+            if inner_exc_class and isinstance(exc, inner_exc_class):
+                setattr(type(self), exc_class_simple_name, PropertyMock(return_value=exc.__class__))
 
     def _get_child_mock(self, **kw):
         return Mock()
